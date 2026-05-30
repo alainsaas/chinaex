@@ -336,6 +336,15 @@
       currentLang = e.target.value;
     });
 
+    // Dismissible map disclaimer note
+    const mapNoteClose = document.getElementById('mapNoteClose');
+    if (mapNoteClose) {
+      mapNoteClose.addEventListener('click', () => {
+        const note = document.getElementById('mapNote');
+        if (note) note.classList.add('hidden');
+      });
+    }
+
     // Add Name
     document.getElementById('addNameBtn').addEventListener('click', () => {
       document.getElementById('nameInput').value = authorName;
