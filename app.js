@@ -40,6 +40,12 @@
   let pathGenerator = null;
   let projection = null;
   let svg, g, zoom;
+  // Wrapper size the projection was last rendered at. Annotations are stored as
+  // percent of this size, so on resize we use it (NOT the live rect) as the OLD
+  // size to re-anchor them to geography: by the time the debounced resize handler
+  // runs, the DOM has already reflowed to the NEW size, so reading the live rect
+  // would give us the new size and make the geo round-trip a no-op.
+  let lastWrapperSize = { w: 0, h: 0 };
 
   // ── Build region lookup ───────────────────────────────────
   function buildLookup() {
@@ -215,6 +221,7 @@
       .translate([width * 0.5, height * 0.52]);
 
     pathGenerator = d3.geoPath().projection(projection);
+    lastWrapperSize = { w: width, h: height };
 
     // Zoom behavior with pan constraints
     const margin = 200; // pixels of slack before hitting edge
@@ -513,17 +520,34 @@
       }
     });
 
-    // Resize
-    window.addEventListener('resize', debounce(() => {
+    // Resize: handle BOTH window resize and any container size change (responsive
+    // design mode, devtools device toolbar, sidebars, orientation, etc.) via a
+    // ResizeObserver, so annotations always re-anchor to geography.
+    const debouncedResize = debounce(handleResize, 150);
+    window.addEventListener('resize', debouncedResize);
+    if (typeof ResizeObserver !== 'undefined') {
+      try { new ResizeObserver(debouncedResize).observe(document.getElementById('mapContainer')); } catch (e) {}
+    }
+  }
+
+  // Re-project the map to the current container size and re-anchor every annotation
+  // to the geographic point it was sitting over, so arrows and captions never drift
+  // when the layout/viewport changes.
+  function handleResize() {
+    {
       const container = document.getElementById('mapContainer');
       const w = container.clientWidth;
       const h = container.clientHeight;
+      if (!w || !h) return;
 
-      // Capture the OLD wrapper size so we can convert each annotation's stored
-      // percent (percent of wrapper) into the geographic point it sits over, using
-      // the projection BEFORE we re-scale it below.
-      const oldRect = document.getElementById('mapWrapper').getBoundingClientRect();
-      const oldW = oldRect.width, oldH = oldRect.height;
+      // Use the size the projection was LAST rendered at (persisted in
+      // lastWrapperSize) as the OLD size. We must NOT read the live wrapper rect
+      // here: this runs debounced, so by now the DOM already reflowed to the
+      // new size and the live rect would equal the new size (making the geo
+      // round-trip a no-op and leaving annotations stranded at the old percent).
+      const oldW = lastWrapperSize.w, oldH = lastWrapperSize.h;
+      // Nothing changed (e.g. ResizeObserver's initial fire) - skip.
+      if (oldW === w && oldH === h) return;
       let geoAnns = null;
       if (window.AnnotationsAPI && oldW > 0 && oldH > 0) {
         const anns = window.AnnotationsAPI.getAll();
@@ -577,7 +601,9 @@
         window.AnnotationsAPI.setAll(rebuilt);
       }
 
-    }, 200));
+      // Remember the size we just rendered at, for the next resize.
+      lastWrapperSize = { w: w, h: h };
+    }
   }
 
   // ── Save image ────────────────────────────────────────────
