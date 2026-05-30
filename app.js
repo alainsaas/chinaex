@@ -31,7 +31,7 @@
   // ── State ─────────────────────────────────────────────────
   const state = {};          // regionId → level (0-5)
   const provinceMembers = {}; // countryIso → [prefecture ids]
-  let currentLang = 'en';    // 'en' or 'local'
+  let currentLang = 'local';    // 'en' or 'local' (Chinese is the default)
   let authorName = '';
   let currentRegion = null;  // currently selected region id
   let geoData = null;        // loaded topojson/geojson
