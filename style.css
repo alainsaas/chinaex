@@ -78,38 +78,34 @@ html, body {
 
 .map-note {
   display: inline-flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   max-width: 340px;
   margin-top: 8px;
-  padding: 5px 8px;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 5px;
   pointer-events: auto;
   position: relative;
   z-index: 11;
 }
 .map-note.hidden { display: none; }
 .map-note-text {
-  font-size: 11px;
+  font-size: 8.25px;
   line-height: 1.35;
   color: #666;
 }
 .map-note-close {
   flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
-  margin-top: 1px;
+  width: 14px;
+  height: 14px;
   padding: 0;
   border: none;
   background: transparent;
-  color: #999;
-  font-size: 15px;
-  line-height: 14px;
+  color: #888;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
   cursor: pointer;
-  border-radius: 3px;
 }
-.map-note-close:hover { color: #444; background: rgba(0,0,0,0.06); }
+.map-note-close:hover { color: #444; }
 
 /* Map */
 .map-container {
@@ -173,7 +169,7 @@ html, body {
 /* Legend */
 .legend {
   position: absolute;
-  top: 168px;
+  top: 156px;
   left: 20px;
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid #ccc;

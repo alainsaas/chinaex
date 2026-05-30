@@ -336,12 +336,17 @@
       currentLang = e.target.value;
     });
 
-    // Dismissible map disclaimer note
+    // Dismissible map disclaimer note (hide the whole note incl. the X button)
     const mapNoteClose = document.getElementById('mapNoteClose');
     if (mapNoteClose) {
-      mapNoteClose.addEventListener('click', () => {
+      mapNoteClose.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const note = document.getElementById('mapNote');
-        if (note) note.classList.add('hidden');
+        if (note) {
+          note.classList.add('hidden');
+          note.style.display = 'none';
+        }
       });
     }
 
