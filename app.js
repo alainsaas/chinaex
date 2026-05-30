@@ -518,14 +518,64 @@
       const container = document.getElementById('mapContainer');
       const w = container.clientWidth;
       const h = container.clientHeight;
+
+      // Capture the OLD wrapper size so we can convert each annotation's stored
+      // percent (percent of wrapper) into the geographic point it sits over, using
+      // the projection BEFORE we re-scale it below.
+      const oldRect = document.getElementById('mapWrapper').getBoundingClientRect();
+      const oldW = oldRect.width, oldH = oldRect.height;
+      let geoAnns = null;
+      if (window.AnnotationsAPI && oldW > 0 && oldH > 0) {
+        const anns = window.AnnotationsAPI.getAll();
+        geoAnns = anns.map(a => {
+          const g2 = Object.assign({}, a);
+          // Convert each stored percent coordinate to a geo [lon,lat] via the OLD projection.
+          const toGeo = (px, py) => projection.invert([(px / 100) * oldW, (py / 100) * oldH]);
+          if (a.type === 'c') {
+            g2._g = toGeo(a.x, a.y);
+          } else if (a.type === 'a') {
+            g2._g1 = toGeo(a.x1, a.y1);
+            g2._g2 = toGeo(a.x2, a.y2);
+          }
+          return g2;
+        });
+      }
+
       svg.attr('width', w).attr('height', h);
       svg.select('rect').attr('width', w).attr('height', h);
-      
+
       projection.scale(Math.min(w, h) * 1.55).translate([w * 0.5, h * 0.52]);
       zoom.translateExtent([[-200, -200], [w + 200, h + 200]]);
       g.selectAll('.region-path').attr('d', pathGenerator);
       g.selectAll('.country-border').attr('d', pathGenerator);
       g.selectAll('.rail-line').attr('d', pathGenerator);
+
+      // Re-anchor annotations: project each stored geo point through the NEW projection
+      // and convert back to percent of the NEW wrapper size, so arrows and captions
+      // stay over the same geography after a resize.
+      if (geoAnns) {
+        const fromGeo = (lonlat) => {
+          if (!lonlat) return null;
+          const p = projection(lonlat);
+          if (!p) return null;
+          return [(p[0] / w) * 100, (p[1] / h) * 100];
+        };
+        const rebuilt = geoAnns.map(g2 => {
+          const out = Object.assign({}, g2);
+          if (g2.type === 'c' && g2._g) {
+            const np = fromGeo(g2._g);
+            if (np) { out.x = np[0]; out.y = np[1]; }
+          } else if (g2.type === 'a') {
+            const n1 = fromGeo(g2._g1);
+            const n2 = fromGeo(g2._g2);
+            if (n1) { out.x1 = n1[0]; out.y1 = n1[1]; }
+            if (n2) { out.x2 = n2[0]; out.y2 = n2[1]; }
+          }
+          delete out._g; delete out._g1; delete out._g2;
+          return out;
+        });
+        window.AnnotationsAPI.setAll(rebuilt);
+      }
 
     }, 200));
   }
